@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Loan Amortization Calculator</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --navy:#1F3864;--blue:#2E75B6;--blue-light:#D6E4F0;--blue-mid:#185FA5;
+  --white:#fff;--bg:#f0f4f8;--surface:#fff;--border:#d4dde8;
+  --text:#1a2333;--muted:#5a6a80;--faint:#9aaabb;--alt:#EBF3FB;
+  --green:#0F6E56;--green-bg:#E1F5EE;--amber:#BA7517;--amber-bg:#FFF0E0;
+  --red:#9C3A00;--input-blue:#0000cc;--radius:10px;--radius-sm:6px;
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.5;min-height:100vh}
+.app-header{background:var(--navy);color:white;padding:16px 28px;display:flex;align-items:center;gap:14px}
+.header-icon{width:40px;height:40px;background:rgba(255,255,255,.12);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.app-header h1{font-size:20px;font-weight:600;letter-spacing:-.02em}
+.app-header p{font-size:12px;opacity:.6;margin-top:2px}
+.tabs{background:var(--navy);display:flex;gap:2px;padding:0 28px;border-top:1px solid rgba(255,255,255,.1)}
+.tab{padding:10px 20px;font-size:13px;font-weight:500;color:rgba(255,255,255,.6);cursor:pointer;border-bottom:3px solid transparent;transition:all .15s;user-select:none}
+.tab:hover{color:rgba(255,255,255,.9)}
+.tab.active{color:white;border-bottom-color:#5BA8E5}
+.panel{display:none}.panel.active{display:block}
+.body-wrap{max-width:1140px;margin:0 auto;padding:20px 20px 48px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:16px}
+.card-header{padding:9px 14px;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:white}
+.card-header.blue{background:var(--blue)}.card-header.navy{background:var(--navy)}
+.card-body{padding:14px 16px}
+.two-col{display:grid;grid-template-columns:320px 1fr;gap:16px;align-items:start}
+.right-col{display:flex;flex-direction:column;gap:16px}
+.input-row{display:grid;grid-template-columns:1fr auto;align-items:center;gap:8px;padding:7px 0;border-bottom:.5px solid var(--border)}
+.input-row:last-child{border-bottom:none}
+.input-label{font-size:13px;color:var(--text)}
+.input-row input,.input-row select{width:160px;padding:6px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-weight:600;color:var(--input-blue);background:#fafcff;text-align:right;outline:none;transition:border-color .15s}
+.input-row select{text-align:left;cursor:pointer}
+.input-row input:focus,.input-row select:focus{border-color:var(--blue);background:white}
+.warn-banner{display:none;background:var(--amber-bg);color:var(--amber);border:1px solid #e8c070;border-radius:var(--radius-sm);padding:8px 12px;font-size:12px;font-weight:500;margin-bottom:12px}
+.metrics-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
+.metric{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px}
+.metric-label{font-size:11px;color:var(--muted);margin-bottom:4px}
+.metric-value{font-size:19px;font-weight:700}
+.metric-value.blue{color:var(--blue-mid)}.metric-value.amber{color:var(--amber)}.metric-value.green{color:var(--green)}
+.metric-sub{font-size:11px;color:var(--faint);margin-top:2px}
+.totals-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:14px 16px}
+.kv-table{width:100%;border-collapse:collapse;font-size:12.5px}
+.kv-table th{background:var(--navy);color:white;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:8px 10px;text-align:left}
+.kv-table td{padding:7px 10px;border-bottom:.5px solid var(--border)}
+.kv-table tr:last-child td{border-bottom:none}
+.kv-table tr:nth-child(even) td{background:var(--alt)}
+.kv-table td:first-child{color:var(--muted)}
+.kv-table td:last-child{text-align:right;font-weight:600;color:var(--text)}
+.chart-legend{display:flex;gap:16px;font-size:12px;color:var(--muted);margin-bottom:8px}
+.legend-item{display:flex;align-items:center;gap:5px}
+.legend-swatch{width:20px;height:3px;border-radius:2px}
+.chart-wrap{position:relative;height:200px}
+.table-wrap{overflow-x:auto;overflow-y:auto;max-height:440px;border-radius:0 0 var(--radius) var(--radius)}
+table{width:100%;border-collapse:collapse;font-size:12px;min-width:780px}
+thead{position:sticky;top:0;z-index:5}
+thead tr{background:var(--navy)}
+thead th{padding:9px 10px;text-align:right;color:rgba(255,255,255,.85);font-size:11px;font-weight:600;letter-spacing:.04em;white-space:nowrap;border-right:1px solid rgba(255,255,255,.1)}
+thead th:first-child{text-align:center;width:40px}
+thead th:nth-child(2){text-align:left}
+thead th:last-child{border-right:none}
+tbody tr:nth-child(odd){background:var(--alt)}
+tbody tr:nth-child(even){background:white}
+tbody tr.early-end{border-bottom:2px solid var(--blue)}
+tbody td{padding:7px 10px;text-align:right;color:var(--text);border-right:.5px solid var(--border)}
+tbody td:first-child{text-align:center;color:var(--faint);font-size:11px}
+tbody td:nth-child(2){text-align:left}
+tbody td:last-child{border-right:none}
+tbody td.extra-cell{color:var(--input-blue);font-weight:600}
+tbody td.rounded-cell{color:var(--green);font-weight:600}
+.guide-wrap{max-width:780px}
+.guide-section{margin-bottom:24px}
+.guide-section h2{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:white;background:var(--blue);padding:8px 14px;border-radius:var(--radius-sm) var(--radius-sm) 0 0;margin-bottom:0}
+.guide-section h2.navy{background:var(--navy)}
+.guide-kv{width:100%;border-collapse:collapse;font-size:13px}
+.guide-kv td{padding:9px 14px;border-bottom:.5px solid var(--border);vertical-align:top;line-height:1.6}
+.guide-kv tr:last-child td{border-bottom:none}
+.guide-kv tr:nth-child(even) td{background:white}
+.guide-kv tr:nth-child(odd) td{background:var(--alt)}
+.guide-kv td:first-child{width:220px;font-weight:600;color:var(--muted);border-right:.5px solid var(--border)}
+.guide-kv td.warn{background:var(--amber-bg);color:var(--red)}
+.guide-kv td.good{background:var(--green-bg);color:var(--green)}
+.guide-full{padding:10px 14px;font-size:13px;line-height:1.7;border-top:.5px solid var(--border)}
+.guide-full.warn{background:var(--amber-bg);color:var(--red)}
+.guide-full.plain{background:white}
+.disclaimer{background:var(--amber-bg);border:1px solid #e8c070;border-radius:var(--radius-sm);padding:12px 16px;font-size:12px;color:var(--red);line-height:1.7;margin-top:4px}
+@media(max-width:860px){.two-col{grid-template-columns:1fr}.metrics-grid{grid-template-columns:1fr 1fr}.totals-grid{grid-template-columns:1fr}}
+@media print{.app-header,.tabs,.chart-wrap,.metrics-grid{display:none}.table-wrap{max-height:none;overflow:visible}table{font-size:10px}}
+</style>
+</head>
+<body>
+
+<header class="app-header">
+  <div class="header-icon">🏦</div>
+  <div>
+    <h1>Loan Amortization Calculator</h1>
+    <p>Singapore &nbsp;·&nbsp; DD/MM/YYYY &nbsp;·&nbsp; Quarterly · Monthly · Fortnightly · Weekly &nbsp;·&nbsp; Up to 30 years</p>
+  </div>
+</header>
+
+<nav class="tabs">
+  <div class="tab active" data-tab="calc">Calculator</div>
+  <div class="tab" data-tab="guide">User Guide</div>
+</nav>
+
+<div id="tab-calc" class="panel active">
+<div class="body-wrap">
+<div class="two-col">
+
+  <div>
+    <div class="card">
+      <div class="card-header blue">Loan Parameters</div>
+      <div class="card-body">
+        <div class="input-row"><label class="input-label">Loan Amount ($)</label><input type="number" id="loanAmt" value="5000" min="1" step="1000"></div>
+        <div class="input-row"><label class="input-label">Annual Interest Rate (%)</label><input type="number" id="rate" value="4.00" min="0.01" max="50" step="0.25"></div>
+        <div class="input-row"><label class="input-label">Loan Period (Years)</label><input type="number" id="years" value="1" min="1" max="30" step="1"></div>
+        <div class="input-row">
+          <label class="input-label">Payments per Year</label>
+          <select id="ppy">
+            <option value="4">4 — quarterly</option>
+            <option value="12" selected>12 — monthly</option>
+            <option value="26">26 — fortnightly</option>
+            <option value="52">52 — weekly</option>
+          </select>
+        </div>
+        <div class="input-row"><label class="input-label">Start Date</label><input type="date" id="startDate" value="2026-04-20"></div>
+        <div class="input-row"><label class="input-label">Extra Payment per Period ($)</label><input type="number" id="extra" value="100" min="0" step="50"></div>
+        <div class="input-row"><label class="input-label">Lender Name</label><input type="text" id="lender" value="Woodgrove Bank" style="text-align:left;"></div>
+        <div class="input-row">
+          <label class="input-label">Round 1st Instalment to $1,000</label>
+          <select id="roundToggle">
+            <option value="No" selected>No</option>
+            <option value="Yes">Yes</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <p style="font-size:11px;color:var(--faint);text-align:center;margin-top:4px;">Blue text cells are inputs — edit to recalculate automatically</p>
+  </div>
+
+  <div class="right-col">
+    <div id="warnBanner" class="warn-banner"></div>
+
+    <div class="metrics-grid">
+      <div class="metric"><div class="metric-label">Scheduled payment</div><div class="metric-value blue" id="mSched">—</div><div class="metric-sub">per period</div></div>
+      <div class="metric"><div class="metric-label">Actual payments</div><div class="metric-value" id="mActual">—</div><div class="metric-sub" id="mActualSub">of scheduled</div></div>
+      <div class="metric"><div class="metric-label">Total interest</div><div class="metric-value amber" id="mInterest">—</div><div class="metric-sub" id="mIntPct">—</div></div>
+      <div class="metric"><div class="metric-label">Interest saved</div><div class="metric-value green" id="mSaved">—</div><div class="metric-sub">vs no extra payment</div></div>
+    </div>
+
+    <div class="card">
+      <div class="totals-grid">
+        <table class="kv-table">
+          <thead><tr><th colspan="2">Payment Totals</th></tr></thead>
+          <tbody>
+            <tr><td>Scheduled payments</td><td id="tSchedPmt">—</td></tr>
+            <tr><td>Total payment</td><td id="tTotalPmt">—</td></tr>
+            <tr><td>Total principal</td><td id="tPrincipal">—</td></tr>
+            <tr><td>Total interest</td><td id="tInterest">—</td></tr>
+          </tbody>
+        </table>
+        <table class="kv-table">
+          <thead><tr><th colspan="2">Schedule Totals</th></tr></thead>
+          <tbody>
+            <tr><td>Scheduled payments</td><td id="tSchedN">—</td></tr>
+            <tr><td>Actual payments</td><td id="tActualN">—</td></tr>
+            <tr><td>Total extra paid</td><td id="tExtra">—</td></tr>
+            <tr><td>Cumulative interest</td><td id="tCumInt">—</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-body">
+        <div class="chart-legend">
+          <div class="legend-item"><div class="legend-swatch" style="background:#185FA5;"></div>Remaining balance</div>
+          <div class="legend-item"><div class="legend-swatch" style="background:#BA7517;border-top:2px dashed #BA7517;height:0;"></div>Cumulative interest</div>
+        </div>
+        <div class="chart-wrap">
+          <canvas id="balChart" role="img" aria-label="Line chart showing remaining balance and cumulative interest over payment periods.">Balance and interest chart.</canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header navy">Payment Schedule</div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th><th>Payment Date</th><th>Beg. Balance</th><th>Sched. Payment</th>
+              <th>Extra Payment</th><th>Total Payment</th><th>Principal</th>
+              <th>Interest</th><th>End. Balance</th><th>Cumul. Interest</th>
+            </tr>
+          </thead>
+          <tbody id="schedBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+</div>
+
+<div id="tab-guide" class="panel">
+<div class="body-wrap">
+<div class="guide-wrap">
+
+  <div class="guide-section">
+    <h2>Overview</h2>
+    <div class="guide-full plain">This calculator computes a loan repayment schedule based on your inputs. It supports fixed-rate reducing balance loans with optional extra principal payments per period. Payment frequency options are quarterly, monthly, fortnightly, and weekly. An optional toggle allows the first instalment to be rounded down to the nearest $1,000. All calculations update automatically when inputs are changed.</div>
+  </div>
+
+  <div class="guide-section">
+    <h2>How to Use</h2>
+    <table class="guide-kv">
+      <tr><td>Step 1 — Enter loan parameters</td><td>Edit the blue text inputs in the Loan Parameters panel. All fields recalculate the schedule instantly.</td></tr>
+      <tr><td>Step 2 — Review the summary</td><td>The Payment Totals and Schedule Totals tables update automatically with every input change.</td></tr>
+      <tr><td>Step 3 — Review the schedule</td><td>Scroll down to view the full payment-by-payment breakdown. The schedule terminates when the ending balance reaches zero.</td></tr>
+      <tr><td>Step 4 — Variable extra payments</td><td>The Extra Payment input applies the same fixed amount every period. The Excel version supports per-row editing for variable amounts per period.</td></tr>
+      <tr><td>Step 5 — Round 1st instalment</td><td>Set the toggle to Yes to round the period 1 ending balance down to the nearest $1,000. This increases the first payment to absorb the rounding difference. From period 2 onwards the schedule resumes from the rounded balance using the normal PMT amount.</td></tr>
+      <tr><td>Step 6 — Print</td><td>Use browser File &gt; Print or Ctrl+P. Select landscape orientation and fit to page width for best results.</td></tr>
+    </table>
+  </div>
+
+  <div class="guide-section">
+    <h2>Scope — Supported Inputs</h2>
+    <table class="guide-kv">
+      <tr><td>Loan amount</td><td>Any positive dollar amount.</td></tr>
+      <tr><td>Annual interest rate</td><td>Between 0.01% and 50%. Enter as a percentage — e.g. 4.00 for 4.00%.</td></tr>
+      <tr><td>Loan period</td><td>1 to 30 years (whole numbers only).</td></tr>
+      <tr><td>Payments per year</td><td>Select from dropdown: 4 (quarterly), 12 (monthly), 26 (fortnightly), or 52 (weekly).</td></tr>
+      <tr><td>Start date</td><td>Any valid date. Payment dates are calculated forward from this date.</td></tr>
+      <tr><td>Extra payment</td><td>Optional fixed additional principal per period. Enter 0 for no extra payment.</td></tr>
+      <tr><td>Lender name</td><td>Optional reference text. Does not affect calculations.</td></tr>
+      <tr><td>Round 1st instalment</td><td>Yes/No toggle. Yes rounds the period 1 ending balance down to the nearest $1,000 — common in Singapore housing loans.</td></tr>
+    </table>
+  </div>
+
+  <div class="guide-section">
+    <h2 class="navy">Row Allocation Limits</h2>
+    <table class="guide-kv">
+      <tr><td>Quarterly (4/year)</td><td class="good">120 periods max — supports full 30 years. No truncation risk.</td></tr>
+      <tr><td>Monthly (12/year)</td><td class="good">360 periods max — supports full 30 years. No truncation risk.</td></tr>
+      <tr><td>Fortnightly (26/year)</td><td class="warn">Supports up to ~13 years 10 months. Beyond this the schedule may truncate.</td></tr>
+      <tr><td>Weekly (52/year)</td><td class="warn">Supports up to ~6 years 11 months. Beyond this the schedule may truncate.</td></tr>
+    </table>
+    <div class="guide-full warn">⚠ If you require fortnightly or weekly payments beyond these limits, use monthly payments as an approximation or request an extended version.</div>
+  </div>
+
+  <div class="guide-section">
+    <h2>Calculation Method</h2>
+    <table class="guide-kv">
+      <tr><td>Interest method</td><td>Reducing balance. Interest per period = Annual Rate ÷ Payments per Year × Opening Balance.</td></tr>
+      <tr><td>Payment amount</td><td>Calculated using the standard PMT formula. Rounded to 2 decimal places each period.</td></tr>
+      <tr><td>Extra payment cap</td><td>Automatically capped so it does not exceed remaining principal on the final period.</td></tr>
+      <tr><td>Final period</td><td>The last payment may be less than the scheduled amount when extra payments accelerate payoff.</td></tr>
+      <tr><td>Rounding</td><td>All monetary values are rounded to 2 decimal places at each step to prevent floating-point accumulation errors.</td></tr>
+      <tr><td>First instalment rounding</td><td>When toggle is Yes: period 1 ending balance = FLOOR(Opening Balance − Interest, 1000). Principal = Opening Balance − Rounded Ending Balance. No extra payment applied in period 1.</td></tr>
+      <tr><td>Date calculation</td><td>Quarterly/monthly payments step by exact calendar months. Fortnightly = 14-day intervals. Weekly = 7-day intervals. Public holidays and weekends are not adjusted.</td></tr>
+    </table>
+  </div>
+
+  <div class="guide-section">
+    <h2 class="navy">Limitations — Not Supported</h2>
+    <table class="guide-kv">
+      <tr><td>Variable interest rate</td><td>Fixed rate only. Variable or split rates are not supported.</td></tr>
+      <tr><td>Interest-only periods</td><td>All payments include principal and interest from period 1.</td></tr>
+      <tr><td>Balloon payments</td><td>Lump sum final payments are not supported.</td></tr>
+      <tr><td>Offset accounts</td><td>Funds in an offset account are not modelled.</td></tr>
+      <tr><td>Redraw facilities</td><td>Drawing back extra payments already made is not reflected.</td></tr>
+      <tr><td>Daily compounding</td><td>Uses simple per-period interest. May differ from lenders that compound daily.</td></tr>
+      <tr><td>Rule of 78s</td><td>Pre-computed interest schedules used by some lenders are not supported.</td></tr>
+      <tr><td>Fees and charges</td><td>Establishment fees, monthly fees, or early repayment charges are not included.</td></tr>
+      <tr><td>Variable extra payments</td><td>Fixed extra payment only. The Excel version supports per-row variable amounts.</td></tr>
+    </table>
+  </div>
+
+  <div class="guide-section">
+    <h2>Disclaimer</h2>
+    <div class="disclaimer">This calculator is provided for indicative purposes only. Results may differ from your lender's actual loan statement due to differences in compounding method, rounding conventions, payment date adjustments, and fees not captured here. Always refer to your lender's official loan schedule and consult a qualified financial adviser before making financial decisions.</div>
+  </div>
+
+</div>
+</div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const fmtM=n=>'$'+Math.abs(n).toLocaleString('en-SG',{minimumFractionDigits:2,maximumFractionDigits:2});
+const fmtN=n=>n.toLocaleString('en-SG');
+
+const fmtDate=(base,idx,ppy)=>{
+  const d=new Date(base+'T00:00:00');
+  if(ppy===4){d.setMonth(d.getMonth()+idx*3);}
+  else if(ppy===12){d.setMonth(d.getMonth()+idx);}
+  else if(ppy===26){d.setDate(d.getDate()+idx*14);}
+  else{d.setDate(d.getDate()+idx*7);}
+  return d.toLocaleDateString('en-GB',{day:'2-digit',month:'2-digit',year:'numeric'});
+};
+
+let chartInst=null;
+
+function compute(){
+  const loan=Math.max(0,parseFloat($('loanAmt').value)||0);
+  const annRate=Math.max(0,parseFloat($('rate').value)/100||0);
+  const years=Math.min(30,Math.max(1,parseInt($('years').value)||1));
+  const ppy=parseInt($('ppy').value);
+  const extra=Math.max(0,parseFloat($('extra').value)||0);
+  const startRaw=$('startDate').value||'2026-04-20';
+  const doRound=$('roundToggle').value==='Yes';
+
+  const rPer=annRate/ppy;
+  const nTot=years*ppy;
+  const sched=rPer>0
+    ?Math.round((loan*rPer/(1-Math.pow(1+rPer,-nTot)))*100)/100
+    :Math.round(loan/nTot*100)/100;
+
+  const rows=[];
+  let bal=Math.round(loan*100)/100;
+  let cumInt=0;
+
+  for(let n=1;n<=nTot;n++){
+    if(bal<=0)break;
+    const interest=Math.round(bal*rPer*100)/100;
+    let endBal,principal,totalPmt,extraPmt,isRounded=false;
+    if(n===1&&doRound){
+      endBal=Math.floor(Math.max(0,bal-interest)/1000)*1000;
+      principal=Math.round((bal-endBal)*100)/100;
+      totalPmt=Math.round((principal+interest)*100)/100;
+      extraPmt=0;isRounded=true;
+    }else{
+      const ps=Math.round((sched-interest)*100)/100;
+      extraPmt=Math.round(Math.min(extra,Math.max(0,bal-ps))*100)/100;
+      const tp=Math.round(Math.min(bal,ps+extraPmt)*100)/100;
+      totalPmt=Math.round((tp+interest)*100)/100;
+      principal=tp;
+      endBal=Math.round(Math.max(0,bal-principal)*100)/100;
+    }
+    cumInt=Math.round((cumInt+interest)*100)/100;
+    rows.push({n,date:fmtDate(startRaw,n-1,ppy),begBal:bal,sched,extra:extraPmt,total:totalPmt,principal,interest,endBal,cumInt,isRounded});
+    bal=endBal;
+  }
+
+  // Interest without extra for savings calc
+  let balNX=loan,intNX=0;
+  for(let n=1;n<=nTot;n++){
+    if(balNX<=0)break;
+    const i2=Math.round(balNX*rPer*100)/100;
+    const p2=Math.round((sched-i2)*100)/100;
+    balNX=Math.round(Math.max(0,balNX-p2)*100)/100;
+    intNX=Math.round((intNX+i2)*100)/100;
+  }
+  const totInt=rows.reduce((s,r)=>s+r.interest,0);
+  const totExtra=rows.reduce((s,r)=>s+r.extra,0);
+  const saved=Math.round((intNX-totInt)*100)/100;
+  const earlyEnd=rows.length<nTot;
+
+  // Warnings
+  const wb=$('warnBanner');
+  const warns=[];
+  if(loan<=0)warns.push('Loan amount must be greater than zero.');
+  if(annRate<=0)warns.push('Interest rate must be greater than zero.');
+  if(ppy===26&&years>13)warns.push('Fortnightly payments with 14+ years may exceed display limits.');
+  if(ppy===52&&years>6)warns.push('Weekly payments with 7+ years may exceed display limits.');
+  if(earlyEnd&&extra>0)warns.push('Loan repaid early due to extra payments — schedule ends before scheduled term.');
+  wb.style.display=warns.length?'block':'none';
+  wb.textContent=warns.join(' ');
+
+  $('mSched').textContent=fmtM(sched);
+  $('mActual').textContent=rows.length;
+  $('mActualSub').textContent='of '+nTot+' scheduled';
+  $('mInterest').textContent=fmtM(totInt);
+  $('mIntPct').textContent=(loan>0?(totInt/loan*100).toFixed(1):'0.0')+'% of loan amount';
+  $('mSaved').textContent=saved>0?fmtM(saved):'$0.00';
+
+  $('tSchedPmt').textContent=fmtM(rows.reduce((s,r)=>s+r.sched,0));
+  $('tTotalPmt').textContent=fmtM(rows.reduce((s,r)=>s+r.total,0));
+  $('tPrincipal').textContent=fmtM(rows.reduce((s,r)=>s+r.principal,0));
+  $('tInterest').textContent=fmtM(totInt);
+  $('tSchedN').textContent=fmtN(nTot);
+  $('tActualN').textContent=fmtN(rows.length);
+  $('tExtra').textContent=fmtM(totExtra);
+  $('tCumInt').textContent=fmtM(rows.length?rows[rows.length-1].cumInt:0);
+
+  const tbody=$('schedBody');
+  tbody.innerHTML='';
+  rows.forEach((r,idx)=>{
+    const tr=document.createElement('tr');
+    if(idx===rows.length-1&&earlyEnd)tr.classList.add('early-end');
+    tr.innerHTML=`<td>${r.n}</td><td>${r.date}</td><td>${fmtM(r.begBal)}</td><td>${fmtM(r.sched)}</td><td class="${r.extra>0?'extra-cell':''}">${fmtM(r.extra)}</td><td>${fmtM(r.total)}</td><td>${fmtM(r.principal)}</td><td>${fmtM(r.interest)}</td><td class="${r.isRounded?'rounded-cell':''}">${fmtM(r.endBal)}</td><td>${fmtM(r.cumInt)}</td>`;
+    tbody.appendChild(tr);
+  });
+
+  const showPts=rows.length<=60;
+  if(chartInst){chartInst.destroy();chartInst=null;}
+  chartInst=new Chart($('balChart'),{
+    type:'line',
+    data:{
+      labels:rows.map(r=>r.n),
+      datasets:[
+        {label:'Remaining balance',data:rows.map(r=>r.endBal),borderColor:'#185FA5',backgroundColor:'rgba(24,95,165,.07)',fill:true,tension:.35,borderWidth:2,pointRadius:showPts?3:0,pointHoverRadius:5},
+        {label:'Cumulative interest',data:rows.map(r=>r.cumInt),borderColor:'#BA7517',backgroundColor:'rgba(186,117,23,.05)',fill:true,tension:.35,borderWidth:2,borderDash:[5,4],pointRadius:showPts?3:0,pointHoverRadius:5}
+      ]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      interaction:{mode:'index',intersect:false},
+      plugins:{
+        legend:{display:false},
+        tooltip:{callbacks:{label:ctx=>' '+ctx.dataset.label+': $'+ctx.parsed.y.toLocaleString('en-SG',{minimumFractionDigits:2,maximumFractionDigits:2})}}
+      },
+      scales:{
+        x:{title:{display:true,text:'Payment period',font:{size:11},color:'#8a9ab0'},ticks:{maxTicksLimit:12,font:{size:11},color:'#8a9ab0'},grid:{display:false}},
+        y:{ticks:{font:{size:11},color:'#8a9ab0',callback:v=>'$'+(v>=1000?(v/1000).toFixed(0)+'k':v.toFixed(0))},grid:{color:'rgba(0,0,0,.06)'}}
+      }
+    }
+  });
+}
+
+// Tabs
+document.querySelectorAll('.tab').forEach(tab=>{
+  tab.addEventListener('click',()=>{
+    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('tab-'+tab.dataset.tab).classList.add('active');
+  });
+});
+
+['loanAmt','rate','years','ppy','extra','startDate','lender','roundToggle'].forEach(id=>{
+  const el=$(id);
+  if(el){el.addEventListener('change',compute);el.addEventListener('input',compute);}
+});
+
+compute();
+</script>
+</body>
+</html>
