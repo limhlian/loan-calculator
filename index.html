@@ -214,18 +214,17 @@ tbody td.rounded-cell{color:var(--green);font-weight:600}
 
   <div class="guide-section">
     <h2>Overview</h2>
-    <div class="guide-full plain">This calculator computes a loan repayment schedule based on your inputs. It supports fixed-rate reducing balance loans with optional extra principal payments per period. Payment frequency options are quarterly, monthly, fortnightly, and weekly. An optional toggle allows the first instalment to be rounded down to the nearest $1,000. All calculations update automatically when inputs are changed.</div>
+    <div class="guide-full plain">This calculator computes a loan repayment schedule based on your inputs. It supports fixed-rate reducing balance loans with optional extra principal payments per period. All calculations update automatically when inputs are changed.</div>
   </div>
 
   <div class="guide-section">
     <h2>How to Use</h2>
     <table class="guide-kv">
       <tr><td>Step 1 — Enter loan parameters</td><td>Edit the blue text inputs in the Loan Parameters panel. All fields recalculate the schedule instantly.</td></tr>
-      <tr><td>Step 2 — Review the summary</td><td>The Payment Totals and Schedule Totals tables update automatically with every input change.</td></tr>
+      <tr><td>Step 2 — Review the summary</td><td>The Loan Summary block and Payment/Schedule Totals tables update automatically with every input change.</td></tr>
       <tr><td>Step 3 — Review the schedule</td><td>Scroll down to view the full payment-by-payment breakdown. The schedule terminates when the ending balance reaches zero.</td></tr>
-      <tr><td>Step 4 — Variable extra payments</td><td>The Extra Payment input applies the same fixed amount every period. The Excel version supports per-row editing for variable amounts per period.</td></tr>
-      <tr><td>Step 5 — Round 1st instalment</td><td>Set the toggle to Yes to round the period 1 ending balance down to the nearest $1,000. This increases the first payment to absorb the rounding difference. From period 2 onwards the schedule resumes from the rounded balance using the normal PMT amount.</td></tr>
-      <tr><td>Step 6 — Print</td><td>Use browser File &gt; Print or Ctrl+P. Select landscape orientation and fit to page width for best results.</td></tr>
+      <tr><td>Step 4 — Variable extra payments</td><td>The Extra Payment input applies the same fixed amount every period. The Excel version supports direct per-row editing of the Extra Payment column (blue text) for variable amounts.</td></tr>
+      <tr><td>Step 5 — Round first instalment</td><td>Select Yes to round the period 1 ending balance down to the nearest $1,000. Select No for standard calculation.</td></tr>
     </table>
   </div>
 
@@ -233,58 +232,38 @@ tbody td.rounded-cell{color:var(--green);font-weight:600}
     <h2>Scope — Supported Inputs</h2>
     <table class="guide-kv">
       <tr><td>Loan amount</td><td>Any positive dollar amount.</td></tr>
-      <tr><td>Annual interest rate</td><td>Between 0.01% and 50%. Enter as a percentage — e.g. 4.00 for 4.00%.</td></tr>
+      <tr><td>Annual interest rate</td><td>Between 0.01% and 50%. Enter as a decimal — e.g. 0.065 for 6.50%.</td></tr>
       <tr><td>Loan period</td><td>1 to 30 years (whole numbers only).</td></tr>
       <tr><td>Payments per year</td><td>Select from dropdown: 4 (quarterly), 12 (monthly), 26 (fortnightly), or 52 (weekly).</td></tr>
-      <tr><td>Start date</td><td>Any valid date. Payment dates are calculated forward from this date.</td></tr>
+      <tr><td>Start date</td><td>Any valid date in DD/MM/YYYY format. Payment dates are calculated from this date.</td></tr>
       <tr><td>Extra payment</td><td>Optional fixed additional principal per period. Enter 0 for no extra payment.</td></tr>
-      <tr><td>Lender name</td><td>Optional reference text. Does not affect calculations.</td></tr>
-      <tr><td>Round 1st instalment</td><td>Yes/No toggle. Yes rounds the period 1 ending balance down to the nearest $1,000 — common in Singapore housing loans.</td></tr>
+      <tr><td colspan="2" style="background:var(--amber-bg);color:var(--red);font-weight:500;">Row Allocation Limits: 360 rows for the payment schedule table.</td></tr>
     </table>
-  </div>
-
-  <div class="guide-section">
-    <h2 class="navy">Row Allocation Limits</h2>
-    <table class="guide-kv">
-      <tr><td>Quarterly (4/year)</td><td class="good">120 periods max — supports full 30 years. No truncation risk.</td></tr>
-      <tr><td>Monthly (12/year)</td><td class="good">360 periods max — supports full 30 years. No truncation risk.</td></tr>
-      <tr><td>Fortnightly (26/year)</td><td class="warn">Supports up to ~13 years 10 months. Beyond this the schedule may truncate.</td></tr>
-      <tr><td>Weekly (52/year)</td><td class="warn">Supports up to ~6 years 11 months. Beyond this the schedule may truncate.</td></tr>
-    </table>
-    <div class="guide-full warn">⚠ If you require fortnightly or weekly payments beyond these limits, use monthly payments as an approximation or request an extended version.</div>
   </div>
 
   <div class="guide-section">
     <h2>Calculation Method</h2>
     <table class="guide-kv">
-      <tr><td>Interest method</td><td>Reducing balance. Interest per period = Annual Rate ÷ Payments per Year × Opening Balance.</td></tr>
-      <tr><td>Payment amount</td><td>Calculated using the standard PMT formula. Rounded to 2 decimal places each period.</td></tr>
-      <tr><td>Extra payment cap</td><td>Automatically capped so it does not exceed remaining principal on the final period.</td></tr>
-      <tr><td>Final period</td><td>The last payment may be less than the scheduled amount when extra payments accelerate payoff.</td></tr>
+      <tr><td>Interest method</td><td>Reducing balance (flat rate per period = Annual Rate ÷ Payments per Year). Interest is calculated on the opening balance each period.</td></tr>
+      <tr><td>Payment amount</td><td>Calculated using the standard PMT formula. Rounded to 2 decimal places.</td></tr>
+      <tr><td>Final period</td><td>The last payment may be less than the scheduled payment when extra payments accelerate payoff. The schedule terminates once the ending balance reaches zero.</td></tr>
       <tr><td>Rounding</td><td>All monetary values are rounded to 2 decimal places at each step to prevent floating-point accumulation errors.</td></tr>
-      <tr><td>First instalment rounding</td><td>When toggle is Yes: period 1 ending balance = FLOOR(Opening Balance − Interest, 1000). Principal = Opening Balance − Rounded Ending Balance. No extra payment applied in period 1.</td></tr>
-      <tr><td>Date calculation</td><td>Quarterly/monthly payments step by exact calendar months. Fortnightly = 14-day intervals. Weekly = 7-day intervals. Public holidays and weekends are not adjusted.</td></tr>
+      <tr><td>Date calculation</td><td>Monthly payments use exact month-end stepping. Fortnightly = 14-day intervals. Weekly = 7-day intervals. Public holidays and weekends are not adjusted.</td></tr>
     </table>
   </div>
 
   <div class="guide-section">
     <h2 class="navy">Limitations — Not Supported</h2>
     <table class="guide-kv">
-      <tr><td>Variable interest rate</td><td>Fixed rate only. Variable or split rates are not supported.</td></tr>
-      <tr><td>Interest-only periods</td><td>All payments include principal and interest from period 1.</td></tr>
-      <tr><td>Balloon payments</td><td>Lump sum final payments are not supported.</td></tr>
-      <tr><td>Offset accounts</td><td>Funds in an offset account are not modelled.</td></tr>
-      <tr><td>Redraw facilities</td><td>Drawing back extra payments already made is not reflected.</td></tr>
-      <tr><td>Daily compounding</td><td>Uses simple per-period interest. May differ from lenders that compound daily.</td></tr>
-      <tr><td>Rule of 78s</td><td>Pre-computed interest schedules used by some lenders are not supported.</td></tr>
-      <tr><td>Fees and charges</td><td>Establishment fees, monthly fees, or early repayment charges are not included.</td></tr>
-      <tr><td>Variable extra payments</td><td>Fixed extra payment only. The Excel version supports per-row variable amounts.</td></tr>
+      <tr><td>Variable interest rate</td><td>This calculator assumes a fixed interest rate for the full loan term. Variable or split rates are not supported.</td></tr>
+      <tr><td>Daily compounding</td><td>Some lenders compound interest daily. This calculator uses simple per-period interest. Results may differ slightly from a lender's actual statement.</td></tr>
+      <tr><td>Multiple extra payment amounts</td><td>The extra payment input applies the same fixed amount to every period. For variable amounts, the Excel version supports direct editing of individual rows.</td></tr>
     </table>
   </div>
 
   <div class="guide-section">
     <h2>Disclaimer</h2>
-    <div class="disclaimer">This calculator is provided for indicative purposes only. Results may differ from your lender's actual loan statement due to differences in compounding method, rounding conventions, payment date adjustments, and fees not captured here. Always refer to your lender's official loan schedule and consult a qualified financial adviser before making financial decisions.</div>
+    <div class="disclaimer">This calculator is provided for indicative purposes only. Results may differ from your lender's actual loan statement due to differences in compounding method, rounding conventions, payment date adjustments, and fees. Always refer to your lender's official loan schedule and consult a qualified financial adviser before making financial decisions.</div>
   </div>
 
 </div>
